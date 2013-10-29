@@ -30,6 +30,7 @@ package org.jruby.ext.dbm;
 import java.io.File;
 import java.util.concurrent.ConcurrentNavigableMap;
 import org.jruby.Ruby;
+import org.jruby.RubyArray;
 import org.jruby.RubyClass;
 import org.jruby.RubyFile;
 import org.jruby.RubyNumeric;
@@ -184,7 +185,16 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject select(ThreadContext context, Block block) {
-        return null;
+        RubyArray array = context.runtime.newArray();
+        
+        for (String key : map.keySet()) {
+            IRubyObject rkey = rstr(context, key);
+            IRubyObject rvalue = rstr(context, map.get(key));
+            
+            if (block.yieldSpecific(context, rkey, rvalue).isNil()) array.append(context.runtime.newArray(rkey, rvalue));
+        }
+        
+        return array;
     }   
     
     @JRubyMethod
@@ -290,6 +300,10 @@ public class RubyDBM extends RubyObject {
     private String str(ThreadContext context, IRubyObject value) {
         return RubyString.objAsString(context, value).asJavaString();  
     }
+
+    private IRubyObject rstr(ThreadContext context, String value) {
+        return context.runtime.newString(value);  
+    }    
 
     private IRubyObject yield(Block block) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
