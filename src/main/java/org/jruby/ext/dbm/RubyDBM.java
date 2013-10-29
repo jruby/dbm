@@ -279,17 +279,32 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject shift(ThreadContext context) {
-        return null;
+        for (String key : map.keySet()) {
+            return context.runtime.newArray(rstr(context, key), rstr(context, map.get(key)));
+        }
+        
+        return context.runtime.getNil();
     }
     
     @JRubyMethod
-    public IRubyObject delete(ThreadContext context, IRubyObject key) {
-        return null;
+    public IRubyObject delete(ThreadContext context, IRubyObject key, Block block) {
+        String value = map.remove(str(context, key));
+        
+        if (value == null) return block.isGiven() ? block.yieldSpecific(context, key) : context.runtime.getNil();
+
+        return rstr(context, value);
     }
     
     @JRubyMethod(name = {"delete_if", "reject!"})
     public IRubyObject delete_if(ThreadContext context, Block block) {
-        return null;
+        for (String key : map.keySet()) {
+            IRubyObject rkey = rstr(context, key);
+            IRubyObject rvalue = rstr(context, map.get(key));
+            
+            if (block.yieldSpecific(context, rkey, rvalue).isNil()) map.remove(key);
+        }
+        
+        return this;
     }
     
     @JRubyMethod
