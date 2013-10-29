@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyClass;
+import org.jruby.RubyEnumerable;
+import org.jruby.RubyEnumerator;
 import org.jruby.RubyFile;
 import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
@@ -61,6 +63,8 @@ public class RubyDBM extends RubyObject {
             }
         });
 
+        dbm.includeModule(runtime.getEnumerable());
+        
         runtime.defineClass("DBMError", runtime.getStandardError(),runtime.getStandardError().getAllocator());
 
         // FIXME: These values should be reformulated in terms of O_* from IO + use same RUBY_DBM_RW_BIT
@@ -210,17 +214,23 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"length", "size"})
     public IRubyObject length(ThreadContext context) {
-        return null;
+        return context.runtime.newFixnum(map.size());
     }
     
     @JRubyMethod(name = "empty?")
     public IRubyObject empty_p(ThreadContext context) {
-        return null;
+        return context.runtime.newBoolean(map.isEmpty());
     }
 
     @JRubyMethod(name = {"each", "each_pair"})
     public IRubyObject each(ThreadContext context, Block block) {
-        return null;
+        if (!block.isGiven()) return RubyEnumerator.enumeratorize(context.runtime, this, "each");
+        
+        for (String key: map.keySet()) {
+            block.yieldSpecific(context, rstr(context, key), rstr(context, map.get(key)));
+        }
+        
+        return this;
     } 
 
     @JRubyMethod
