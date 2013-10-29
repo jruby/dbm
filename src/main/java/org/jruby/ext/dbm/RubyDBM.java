@@ -27,19 +27,30 @@
  ***** END LICENSE BLOCK *****/
 package org.jruby.ext.dbm;
 
+import java.io.File;
+import java.util.concurrent.ConcurrentNavigableMap;
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
+import org.jruby.RubyFile;
+import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
+import org.mapdb.DB;
+import org.mapdb.DBMaker;
 
 /**
  *
  */
 public class RubyDBM extends RubyObject {
+    private static final int DEFAULT_MODE = 0666;
+    
+    private DB db = null;
+    private ConcurrentNavigableMap<IRubyObject, IRubyObject> map = null;
+    
     public static void initRipper(Ruby runtime) {
         RubyClass dbm = runtime.defineClass("DBM", runtime.getObject(), new ObjectAllocator() {
             @Override
@@ -67,37 +78,54 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, Block block) {
-        return null;
+        RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, block);
+
+        return block.isGiven() ? dbm.yield(block) : dbm;
     }
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, Block block) {
-        return null;
+        RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, block);
+
+        return block.isGiven() ? dbm.yield(block) : dbm;        
     }
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, IRubyObject flags, Block block) {
-        return null;
+        RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, flags, block);
+
+        return block.isGiven() ? dbm.yield(block) : dbm;
     }
     
     @JRubyMethod
     public IRubyObject initialize(ThreadContext context, IRubyObject filename) {
-        return null;
+        return initialize(context, filename, context.runtime.newFixnum(DEFAULT_MODE));
     }
     
     @JRubyMethod
     public IRubyObject initialize(ThreadContext context, IRubyObject filename, IRubyObject mode) {
-        return null;
+        return initialize(context, filename, mode, context.runtime.getNil());
     }
     
     @JRubyMethod
-    public IRubyObject initialize(ThreadContext context, IRubyObject filename, IRubyObject mode, IRubyObject flags) {
-        return null;
+    public IRubyObject initialize(ThreadContext context, IRubyObject filename, IRubyObject modeArg, IRubyObject flagsArg) {
+        int mode = modeArg.isNil() ? -1 : RubyNumeric.num2int(modeArg);
+        int flags = flagsArg.isNil() ? 0 : RubyNumeric.num2int(flagsArg);
+        String file = RubyFile.get_path(context, filename).asJavaString();
+        
+        db = DBMaker.newFileDB(new File(file)).closeOnJvmShutdown().make();
+        map = db.getTreeMap("");
+        
+        return this;
     }
     
     @JRubyMethod
     public IRubyObject close(ThreadContext context) {
-        return null;
+        db.close();
+        db = null;
+        map = null;
+        
+        return context.runtime.getNil();
     }
     
     @JRubyMethod(name = "closed?")
@@ -239,4 +267,8 @@ public class RubyDBM extends RubyObject {
     public IRubyObject to_hash(ThreadContext context) {
         return null;
     } 
+
+    private IRubyObject yield(Block block) {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
