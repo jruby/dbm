@@ -199,7 +199,13 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject values_at(ThreadContext context, IRubyObject[] keys) {
-        return null;
+        RubyArray array = context.runtime.newArray();
+        
+        for (int i = 0; i < keys.length; i++) {
+            array.append(aref(context, keys[i]));
+        }
+        
+        return array;
     }
     
     @JRubyMethod(name = {"length", "size"})
