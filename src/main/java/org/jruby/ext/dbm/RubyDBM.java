@@ -159,17 +159,27 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"[]=", "store"})
     public IRubyObject aset(ThreadContext context, IRubyObject key, IRubyObject value) {
-        return null;
+        map.put(str(context, key), str(context, value));
+        
+        return value;
     }
     
     @JRubyMethod
     public IRubyObject index(ThreadContext context, IRubyObject value) {
-        return null;
+        context.runtime.getWarnings().warn("DBM#index is deprecated; use DBM#key");
+
+        return key(context, value);
     }
     
     @JRubyMethod
     public IRubyObject key(ThreadContext context, IRubyObject value) {
-        return null;
+        String valueString = str(context, value);
+        
+        for (String key : map.keySet()) {
+            if (valueString.equals(map.get(key))) return context.runtime.newString(key);
+        }
+        
+        return context.runtime.getNil();
     }
     
     @JRubyMethod
