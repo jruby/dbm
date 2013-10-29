@@ -309,17 +309,25 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject reject(ThreadContext context, Block block) {
-        return null;
+        return to_hash(context).callMethod(context, "delete_if", NULL_ARRAY, block);
     }
     
     @JRubyMethod
     public IRubyObject clear(ThreadContext context) {
-        return null;
+        map.clear();
+        
+        return context.runtime.getNil();
     }
     
     @JRubyMethod
     public IRubyObject invert(ThreadContext context) {
-        return null;
+        RubyHash hash = context.runtime.newHash();
+        
+        for (String key : map.keySet()) {
+            hash.fastAset(rstr(context, map.get(key)), rstr(context, key);
+        }        
+        
+        return hash;
     }
     
     @JRubyMethod
