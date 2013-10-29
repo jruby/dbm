@@ -235,22 +235,46 @@ public class RubyDBM extends RubyObject {
 
     @JRubyMethod
     public IRubyObject each_value(ThreadContext context, Block block) {
-        return null;
+        if (!block.isGiven()) return RubyEnumerator.enumeratorize(context.runtime, this, "each_value");
+        
+        for (String key: map.keySet()) {
+            block.yieldSpecific(context, rstr(context, map.get(key)));
+        }
+        
+        return this;
     } 
 
     @JRubyMethod
     public IRubyObject each_key(ThreadContext context, Block block) {
-        return null;
+        if (!block.isGiven()) return RubyEnumerator.enumeratorize(context.runtime, this, "each_key");
+        
+        for (String key: map.keySet()) {
+            block.yieldSpecific(context, rstr(context, key));
+        }
+        
+        return this;
     }
     
     @JRubyMethod
     public IRubyObject keys(ThreadContext context, Block block) {
-        return null;
+        RubyArray array = context.runtime.newArray();
+        
+        for (String key : map.keySet()) {
+            array.append(rstr(context, key));
+        }
+        
+        return array;
     }
     
     @JRubyMethod
     public IRubyObject values(ThreadContext context, Block block) {
-        return null;
+        RubyArray array = context.runtime.newArray();
+        
+        for (String key : map.keySet()) {
+            array.append(rstr(context, map.get(key)));
+        }
+        
+        return array;
     }
     
     @JRubyMethod
