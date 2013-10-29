@@ -32,7 +32,6 @@ import java.util.concurrent.ConcurrentNavigableMap;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
 import org.jruby.RubyClass;
-import org.jruby.RubyEnumerable;
 import org.jruby.RubyEnumerator;
 import org.jruby.RubyFile;
 import org.jruby.RubyNumeric;
@@ -342,17 +341,29 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"has_key?", "key?", "include?", "member?"})
     public IRubyObject has_key(ThreadContext context, IRubyObject value) {
-        return null;
+        return context.runtime.newBoolean(map.get(str(context, value)) != null);
     }
 
     @JRubyMethod(name = {"value?", "has_value?"})
-    public IRubyObject has_value(ThreadContext context, IRubyObject value) {
-        return null;
+    public IRubyObject has_value(ThreadContext context, IRubyObject testArg) {
+        String test = str(context, testArg);
+        
+        for (String value: map.values()) {
+            if (test.equals(value)) return context.runtime.getTrue();
+        }
+        
+        return context.runtime.getFalse();
     }
     
     @JRubyMethod
     public IRubyObject to_a(ThreadContext context) {
-        return null;
+        RubyArray array = context.runtime.newArray();
+        
+        for (String key: map.keySet()) {
+            array.append(context.runtime.newArray(rstr(context, key), rstr(context, map.get(key))));
+        }
+        
+        return array;
     }
     
     @JRubyMethod
