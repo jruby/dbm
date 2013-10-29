@@ -30,7 +30,10 @@ package org.jruby.ext.dbm;
 import org.jruby.Ruby;
 import org.jruby.RubyClass;
 import org.jruby.RubyObject;
+import org.jruby.anno.JRubyMethod;
+import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
+import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.builtin.IRubyObject;
 
 /**
@@ -44,11 +47,196 @@ public class RubyDBM extends RubyObject {
                 return new RubyDBM(runtime, klazz);
             }
         });
-        
+
+        runtime.defineClass("DBMError", runtime.getStandardError(),runtime.getStandardError().getAllocator());
+
+        // FIXME: These values should be reformulated in terms of O_* from IO + use same RUBY_DBM_RW_BIT
+        dbm.defineConstant("READER", runtime.newFixnum(536870912));
+        dbm.defineConstant("WRITER", runtime.newFixnum(536870914));
+        dbm.defineConstant("WRCREAT", runtime.newFixnum(536871426));
+        dbm.defineConstant("NEWDB", runtime.newFixnum(536872450));
+        // FIXME: This should be single-sourced as part of pom.xml
+        dbm.defineConstant("VERSION", runtime.newString("MapDB 0.9.7"));
+
         dbm.defineAnnotatedMethods(RubyDBM.class);
     }
     
     public RubyDBM(Ruby runtime, RubyClass klazz) {
         super(runtime, klazz);
     }
+    
+    @JRubyMethod(meta = true)
+    public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod(meta = true)
+    public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod(meta = true)
+    public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, IRubyObject flags, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject initialize(ThreadContext context, IRubyObject filename) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject initialize(ThreadContext context, IRubyObject filename, IRubyObject mode) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject initialize(ThreadContext context, IRubyObject filename, IRubyObject mode, IRubyObject flags) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject close(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod(name = "closed?")
+    public IRubyObject closed_p(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod(name = "[]")
+    public IRubyObject aref(ThreadContext context, IRubyObject key) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject fetch(ThreadContext context, IRubyObject key) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject fetch(ThreadContext context, IRubyObject key, IRubyObject ifNone) {
+        return null;
+    }
+    
+    @JRubyMethod(name = {"[]=", "store"})
+    public IRubyObject aset(ThreadContext context, IRubyObject key, IRubyObject value) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject index(ThreadContext context, IRubyObject value) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject key(ThreadContext context, IRubyObject value) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject select(ThreadContext context, Block block) {
+        return null;
+    }   
+    
+    @JRubyMethod
+    public IRubyObject values_at(ThreadContext context, IRubyObject[] keys) {
+        return null;
+    }
+    
+    @JRubyMethod(name = {"length", "size"})
+    public IRubyObject length(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod(name = "empty?")
+    public IRubyObject empty_p(ThreadContext context) {
+        return null;
+    }
+
+    @JRubyMethod(name = {"each", "each_pair"})
+    public IRubyObject each(ThreadContext context, Block block) {
+        return null;
+    } 
+
+    @JRubyMethod
+    public IRubyObject each_value(ThreadContext context, Block block) {
+        return null;
+    } 
+
+    @JRubyMethod
+    public IRubyObject each_key(ThreadContext context, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject keys(ThreadContext context, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject values(ThreadContext context, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject shift(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject delete(ThreadContext context, IRubyObject key) {
+        return null;
+    }
+    
+    @JRubyMethod(name = {"delete_if", "reject!"})
+    public IRubyObject delete_if(ThreadContext context, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject reject(ThreadContext context, Block block) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject clear(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject invert(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject update(ThreadContext context, IRubyObject value) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject replace(ThreadContext context, IRubyObject value) {
+        return null;
+    }
+    
+    @JRubyMethod(name = {"has_key?", "key?", "include?", "member?"})
+    public IRubyObject has_key(ThreadContext context, IRubyObject value) {
+        return null;
+    }
+
+    @JRubyMethod(name = {"value?", "has_value?"})
+    public IRubyObject has_value(ThreadContext context, IRubyObject value) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject to_a(ThreadContext context) {
+        return null;
+    }
+    
+    @JRubyMethod
+    public IRubyObject to_hash(ThreadContext context) {
+        return null;
+    } 
 }
