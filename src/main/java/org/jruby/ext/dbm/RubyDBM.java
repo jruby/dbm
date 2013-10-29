@@ -34,6 +34,7 @@ import org.jruby.RubyClass;
 import org.jruby.RubyFile;
 import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
+import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.ObjectAllocator;
@@ -49,7 +50,7 @@ public class RubyDBM extends RubyObject {
     private static final int DEFAULT_MODE = 0666;
     
     private DB db = null;
-    private ConcurrentNavigableMap<IRubyObject, IRubyObject> map = null;
+    private ConcurrentNavigableMap<String, String> map = null;
     
     public static void initRipper(Ruby runtime) {
         RubyClass dbm = runtime.defineClass("DBM", runtime.getObject(), new ObjectAllocator() {
@@ -130,22 +131,30 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = "closed?")
     public IRubyObject closed_p(ThreadContext context) {
-        return null;
+        return context.runtime.newBoolean(db == null);
     }
     
     @JRubyMethod(name = "[]")
     public IRubyObject aref(ThreadContext context, IRubyObject key) {
-        return null;
+        String value = map.get(str(context, key));
+        
+        return value != null ? context.runtime.newString(value) : context.runtime.getNil();
     }
     
     @JRubyMethod
     public IRubyObject fetch(ThreadContext context, IRubyObject key) {
-        return null;
+        String value = map.get(str(context, key));
+        
+        if (value == null) throw context.runtime.newIndexError("key not found");
+
+        return context.runtime.newString(value);
     }
     
     @JRubyMethod
     public IRubyObject fetch(ThreadContext context, IRubyObject key, IRubyObject ifNone) {
-        return null;
+        String value = map.get(str(context, key));
+
+        return value != null ? context.runtime.newString(value) : ifNone;
     }
     
     @JRubyMethod(name = {"[]=", "store"})
@@ -266,7 +275,11 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject to_hash(ThreadContext context) {
         return null;
-    } 
+    }
+    
+    private String str(ThreadContext context, IRubyObject value) {
+        return RubyString.objAsString(context, value).asJavaString();  
+    }
 
     private IRubyObject yield(Block block) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
