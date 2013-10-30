@@ -217,7 +217,7 @@ public class RubyDBM extends RubyObject {
             IRubyObject rkey = rstr(context, key);
             IRubyObject rvalue = rstr(context, map.get(key));
             
-            if (block.yieldSpecific(context, rkey, rvalue).isNil()) array.append(context.runtime.newArray(rkey, rvalue));
+            if (block.yieldSpecific(context, rkey, rvalue).isTrue()) array.append(context.runtime.newArray(rkey, rvalue));
         }
         
         return array;
