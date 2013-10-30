@@ -216,7 +216,7 @@ public class RubyDBM extends RubyObject {
         return array;
     }   
     
-    @JRubyMethod
+    @JRubyMethod(rest = true)
     public IRubyObject values_at(ThreadContext context, IRubyObject[] keys) {
         ensureDBOpen(context);
         RubyArray array = context.runtime.newArray();
