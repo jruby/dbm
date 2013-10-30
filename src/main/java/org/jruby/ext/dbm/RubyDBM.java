@@ -28,6 +28,7 @@
 package org.jruby.ext.dbm;
 
 import java.io.File;
+import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentNavigableMap;
 import org.jruby.Ruby;
 import org.jruby.RubyArray;
@@ -309,11 +310,14 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject shift(ThreadContext context) {
         ensureDBOpen(context);
-        for (String key : map.keySet()) {
-            return context.runtime.newArray(rstr(context, key), rstr(context, map.get(key)));
-        }
+        Entry<String, String> pair = map.firstEntry();
         
-        return context.runtime.getNil();
+        if (pair == null) return context.runtime.getNil();
+        
+        map.remove(pair.getKey());
+        db.commit();
+
+        return context.runtime.newArray(rstr(context, pair.getKey()), rstr(context, pair.getValue()));
     }
     
     @JRubyMethod
