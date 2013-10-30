@@ -136,6 +136,7 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject close(ThreadContext context) {
         ensureDBOpen(context);
+        db.commit();
         db.close();
         db = null;
         map = null;
@@ -178,6 +179,7 @@ public class RubyDBM extends RubyObject {
     public IRubyObject aset(ThreadContext context, IRubyObject key, IRubyObject value) {
         ensureDBOpen(context);
         map.put(str(context, key), str(context, value));
+        db.commit();
         
         return value;
     }
@@ -342,6 +344,7 @@ public class RubyDBM extends RubyObject {
     public IRubyObject clear(ThreadContext context) {
         ensureDBOpen(context);
         map.clear();
+        db.commit();
         
         return context.runtime.getNil();
     }
@@ -374,6 +377,7 @@ public class RubyDBM extends RubyObject {
             
             map.put(str(context, cons.eltOk(0)), str(context, cons.eltOk(1)));
         }
+        db.commit();
 
         return this;
     }
