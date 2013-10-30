@@ -61,6 +61,7 @@
                   <type>jar</type>
                   <overWrite>false</overWrite>
                   <outputDirectory>${dbm.dir}</outputDirectory>
+                  <destFileName>mapdb.jar</destFileName>
                 </artifactItem>
               </artifactItems>
             </configuration>

@@ -11,7 +11,7 @@
  * implied. See the License for the specific language governing
  * rights and limitations under the License.
  *
- * Copyright (C) 2013 The JRuby Team (admin@jruby.org)
+ * Copyright (C) 2013 The JRuby Team (team@jruby.org)
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either of the GNU General Public License Version 2 or later (the "GPL"),
@@ -62,7 +62,7 @@ public class RubyDBM extends RubyObject {
     private DB db = null;
     private ConcurrentNavigableMap<String, String> map = null;
     
-    public static void initRipper(Ruby runtime) {
+    public static void initDBM(Ruby runtime) {
         RubyClass dbm = runtime.defineClass("DBM", runtime.getObject(), new ObjectAllocator() {
             @Override
             public IRubyObject allocate(Ruby runtime, RubyClass klazz) {
