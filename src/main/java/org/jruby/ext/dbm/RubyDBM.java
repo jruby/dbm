@@ -316,6 +316,7 @@ public class RubyDBM extends RubyObject {
     public IRubyObject delete(ThreadContext context, IRubyObject key, Block block) {
         ensureDBOpen(context);
         String value = map.remove(str(context, key));
+        db.commit();
         
         if (value == null) return block.isGiven() ? block.yieldSpecific(context, key) : context.runtime.getNil();
 
@@ -331,6 +332,7 @@ public class RubyDBM extends RubyObject {
             
             if (block.yieldSpecific(context, rkey, rvalue).isNil()) map.remove(key);
         }
+        db.commit();
         
         return this;
     }
