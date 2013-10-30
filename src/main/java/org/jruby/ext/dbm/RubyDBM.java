@@ -34,13 +34,22 @@ import org.jruby.RubyArray;
 import org.jruby.RubyClass;
 import org.jruby.RubyEnumerator;
 import org.jruby.RubyFile;
+import org.jruby.RubyHash;
 import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.exceptions.JumpException;
+import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
+import org.jruby.runtime.BlockBody;
+import org.jruby.runtime.BlockCallback;
+import org.jruby.runtime.CallBlock19;
+import org.jruby.runtime.Helpers;
+import org.jruby.runtime.JavaInternalBlockBody;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
+import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -320,23 +329,40 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject invert(ThreadContext context) {
-        RubyHash hash = context.runtime.newHash();
+        RubyHash hash = RubyHash.newHash(context.runtime);
         
         for (String key : map.keySet()) {
-            hash.fastAset(rstr(context, map.get(key)), rstr(context, key);
+            hash.fastASet(rstr(context, map.get(key)), rstr(context, key));
         }        
         
         return hash;
     }
     
     @JRubyMethod
-    public IRubyObject update(ThreadContext context, IRubyObject value) {
-        return null;
+    public IRubyObject update(final ThreadContext context, IRubyObject value) {
+        while (true) {
+            IRubyObject pair = value.callMethod(context, "each_pair");
+            
+            if (pair.isNil()) break;
+            
+            pair.checkArrayType();
+            
+            RubyArray cons = (RubyArray) pair;
+            
+            if (cons.size() < 2) throw context.runtime.newArgumentError("pair must be [key, value]");
+            
+            map.put(str(context, cons.eltOk(0)), str(context, cons.eltOk(1)));
+        }
+
+        return this;
     }
     
     @JRubyMethod
     public IRubyObject replace(ThreadContext context, IRubyObject value) {
-        return null;
+        clear(context);
+        update(context, value);
+        
+        return this;
     }
     
     @JRubyMethod(name = {"has_key?", "key?", "include?", "member?"})
@@ -368,7 +394,18 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject to_hash(ThreadContext context) {
-        return null;
+        RubyHash hash = RubyHash.newHash(context.runtime);
+        
+        for (String key: map.keySet()) {
+            hash.fastASet(rstr(context, key), rstr(context, map.get(key)));
+        }
+        
+        return hash;
+    }
+    
+    private IRubyObject each(ThreadContext context, IRubyObject self, BlockBody body) {
+        Block block = new Block(body, context.currentBinding(self, Visibility.PUBLIC));
+        return Helpers.invoke(context, self, "each", block);
     }
     
     private String str(ThreadContext context, IRubyObject value) {
