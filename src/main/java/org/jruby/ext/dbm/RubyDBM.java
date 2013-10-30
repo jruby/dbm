@@ -46,6 +46,7 @@ import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
+import org.jruby.util.io.ModeFlags;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
@@ -54,6 +55,11 @@ import org.mapdb.DBMaker;
  */
 public class RubyDBM extends RubyObject {
     private static final int DEFAULT_MODE = 0666;
+    private static final int RUBY_DBM_RW_BIT = 0x20000000;
+    private static final int READER = ModeFlags.RDONLY | RUBY_DBM_RW_BIT;
+    private static final int WRITER = ModeFlags.RDWR | RUBY_DBM_RW_BIT;
+    private static final int WRCREAT = ModeFlags.RDWR | ModeFlags.CREAT | RUBY_DBM_RW_BIT;
+    private static final int NEWDB = ModeFlags.RDWR | ModeFlags.CREAT | ModeFlags.TRUNC | RUBY_DBM_RW_BIT;
     
     private DB db = null;
     private ConcurrentNavigableMap<String, String> map = null;
@@ -70,11 +76,10 @@ public class RubyDBM extends RubyObject {
         
         runtime.defineClass("DBMError", runtime.getStandardError(),runtime.getStandardError().getAllocator());
 
-        // FIXME: These values should be reformulated in terms of O_* from IO + use same RUBY_DBM_RW_BIT
-        dbm.defineConstant("READER", runtime.newFixnum(536870912));
-        dbm.defineConstant("WRITER", runtime.newFixnum(536870914));
-        dbm.defineConstant("WRCREAT", runtime.newFixnum(536871426));
-        dbm.defineConstant("NEWDB", runtime.newFixnum(536872450));
+        dbm.defineConstant("READER", runtime.newFixnum(READER));
+        dbm.defineConstant("WRITER", runtime.newFixnum(WRITER));
+        dbm.defineConstant("WRCREAT", runtime.newFixnum(WRCREAT));
+        dbm.defineConstant("NEWDB", runtime.newFixnum(NEWDB));
         // FIXME: This should be single-sourced as part of pom.xml
         dbm.defineConstant("VERSION", runtime.newString("MapDB 0.9.7"));
 
@@ -121,6 +126,8 @@ public class RubyDBM extends RubyObject {
         int mode = modeArg.isNil() ? -1 : RubyNumeric.num2int(modeArg);
         int flags = flagsArg.isNil() ? 0 : RubyNumeric.num2int(flagsArg);
         String file = RubyFile.get_path(context, filename).asJavaString();
+
+        // FIXME: Handle flags
         
         db = DBMaker.newFileDB(new File(file)).closeOnJvmShutdown().make();
         map = db.getTreeMap("");
