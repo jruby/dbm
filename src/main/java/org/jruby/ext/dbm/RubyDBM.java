@@ -53,15 +53,18 @@ import org.mapdb.DBMaker;
  *
  */
 public class RubyDBM extends RubyObject {
+    private static final int NIL_INSTEAD_OF_ERROR = -1;
     private static final int DEFAULT_MODE = 0666;
     private static final int RUBY_DBM_RW_BIT = 0x20000000;
     private static final int READER = ModeFlags.RDONLY | RUBY_DBM_RW_BIT;
     private static final int WRITER = ModeFlags.RDWR | RUBY_DBM_RW_BIT;
     private static final int WRCREAT = ModeFlags.RDWR | ModeFlags.CREAT | RUBY_DBM_RW_BIT;
     private static final int NEWDB = ModeFlags.RDWR | ModeFlags.CREAT | ModeFlags.TRUNC | RUBY_DBM_RW_BIT;
+    private static final RuntimeException NIL_HACK_EXCEPTION = new RuntimeException();
     
     private DB db = null;
     private ConcurrentNavigableMap<String, String> map = null;
+    private boolean readOnly = false;
     
     public static void initDBM(Ruby runtime) {
         RubyClass dbm = runtime.defineClass("DBM", runtime.getObject(), new ObjectAllocator() {
@@ -91,23 +94,34 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, Block block) {
-        RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, block);
-
-        return block.isGiven() ? block.yieldSpecific(context, dbm) : dbm;
+        return open(context, recv, filename, context.runtime.newFixnum(DEFAULT_MODE), block);
     }
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, Block block) {
-        RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, block);
-
-        return block.isGiven() ? block.yieldSpecific(context, dbm) : dbm;        
+        return open(context, recv, filename, mode, context.runtime.getNil(), block);
     }
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, IRubyObject flags, Block block) {
-        RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, flags, block);
+        RubyDBM dbm;
+        
+        try {
+            dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, flags, block);
+        } catch (RuntimeException e) { // by-pass allocator logic which always will return new instance.
+            if (e == NIL_HACK_EXCEPTION) return context.runtime.getNil();
+            throw e;
+        }
+        
+        if (block.isGiven()) {
+            IRubyObject result = block.yieldSpecific(context, dbm);
+            
+            dbm.close(context);
+            
+            return result;
+        }
 
-        return block.isGiven() ? block.yieldSpecific(context, dbm) : dbm;
+        return dbm;
     }
     
     @JRubyMethod
@@ -122,13 +136,30 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject initialize(ThreadContext context, IRubyObject filename, IRubyObject modeArg, IRubyObject flagsArg) {
-        int mode = modeArg.isNil() ? -1 : RubyNumeric.num2int(modeArg);
-        int flags = flagsArg.isNil() ? 0 : RubyNumeric.num2int(flagsArg);
+        int mode = modeArg.isNil() ? NIL_INSTEAD_OF_ERROR : RubyNumeric.num2int(modeArg);
+        int openFlags = flagsArg.isNil() ? 0 : RubyNumeric.num2int(flagsArg);
         String file = RubyFile.get_path(context, filename).asJavaString();
-
-        // FIXME: Handle flags
+        File dbFile = new File(file);
         
-        db = DBMaker.newFileDB(new File(file)).closeOnJvmShutdown().make();
+        if (mode == NIL_INSTEAD_OF_ERROR && openFlags == 0) throw NIL_HACK_EXCEPTION;
+        
+        if (openFlags == 0) openFlags = WRCREAT;
+        
+        // We handle as much as we can before passing to underlying db for flags.
+        if ((openFlags & ModeFlags.CREAT) == 0 && !dbFile.exists()) {
+            if (mode == NIL_INSTEAD_OF_ERROR) throw NIL_HACK_EXCEPTION;
+            
+            throw context.runtime.newErrnoENOENTError();
+        }
+        
+        DBMaker maker = DBMaker.newFileDB(dbFile).closeOnJvmShutdown();
+        
+        if (openFlags == READER) {
+            maker = maker.readOnly();
+            readOnly = true; // bummer I cannot ask db whether it is opened read-only?
+        }
+        
+        db = maker.make();
         map = db.getTreeMap("");
         
         return this;
@@ -137,7 +168,7 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject close(ThreadContext context) {
         ensureDBOpen(context);
-        db.commit();
+        if (!isReadOnly()) db.commit();
         db.close();
         db = null;
         map = null;
@@ -185,7 +216,7 @@ public class RubyDBM extends RubyObject {
         ensureDBOpen(context);
         ensureNotFrozen(context);
         
-        map.put(str(context, key), str(context, value));
+        store(context, key, value);
         db.commit();
         
         return value;
@@ -394,7 +425,7 @@ public class RubyDBM extends RubyObject {
             
             if (cons.size() < 2) throw context.runtime.newArgumentError("pair must be [key, value]");
             
-            map.put(str(context, cons.eltOk(0)), str(context, cons.eltOk(1)));
+            store(context, cons.eltOk(0), cons.eltOk(1));
         }
         db.commit();
 
@@ -452,15 +483,26 @@ public class RubyDBM extends RubyObject {
         return hash;
     }
     
+    private void store(ThreadContext context, IRubyObject key, IRubyObject value) {
+        try {
+            map.put(str(context, key), str(context, value));
+        } catch (UnsupportedOperationException e) {
+            dbError(context, "dbm_store failed");
+        }        
+    }
+    
+    
     private void ensureDBOpen(ThreadContext context) {
-        if (map == null) throw new RaiseException(context.runtime, 
-                context.runtime.getClass("DBMError"), "closed DBM file", true);
+        if (map == null) dbError(context, "closed DBM file");
     }
     
     private void ensureNotFrozen(ThreadContext context) {
         if (isFrozen()) throw context.runtime.newFrozenError("DBM");
     }
-    
+
+    private void dbError(ThreadContext context, String message) {
+        throw new RaiseException(context.runtime, context.runtime.getClass("DBMError"), message, true);
+    }
     
     private String str(ThreadContext context, IRubyObject value) {
         return RubyString.objAsString(context, value).asJavaString();  
@@ -468,5 +510,10 @@ public class RubyDBM extends RubyObject {
 
     private IRubyObject rstr(ThreadContext context, String value) {
         return context.runtime.newString(value);  
-    }    
+    }
+    
+    private boolean isReadOnly() {
+        return readOnly;
+    }
+    
 }
