@@ -28,6 +28,10 @@
 package org.jruby.ext.dbm;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.channels.FileChannel;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentNavigableMap;
 import org.jruby.Ruby;
@@ -150,6 +154,7 @@ public class RubyDBM extends RubyObject {
         String file = RubyFile.get_path(context, filename).asJavaString();
         File dbFile = new File(file);
         
+        // Only if default flag value or explicit IO::RDONLY passed in we need an early check since RDONLY is 0.
         if (mode == NIL_INSTEAD_OF_ERROR && openFlags == 0 && !dbFile.exists()) throw NIL_HACK_EXCEPTION;
         
         if (openFlags == 0) openFlags = WRCREAT;
@@ -160,6 +165,8 @@ public class RubyDBM extends RubyObject {
             
             throw context.runtime.newErrnoENOENTError();
         }
+        
+        if ((openFlags & ModeFlags.TRUNC) != 0) truncate(dbFile);
         
         DBMaker maker = DBMaker.newFileDB(dbFile).closeOnJvmShutdown();
 
@@ -534,5 +541,16 @@ public class RubyDBM extends RubyObject {
     private boolean isReadOnly() {
         return db.getEngine().isReadOnly();
     }
-    
+
+    private void truncate(File file) {
+        try {
+            FileChannel channel = new FileOutputStream(file, true).getChannel();
+            channel.truncate(0);
+            channel.close();
+        } catch (FileNotFoundException e) {
+            
+        } catch (IOException e) {
+            
+        }
+    }
 }
