@@ -10,6 +10,8 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <mapdb.version>0.9.7</mapdb.version>
+    <dbm.dir>lib</dbm.dir>
   </properties>
 
   <dependencies>
@@ -21,7 +23,7 @@
     <dependency>
       <groupId>org.mapdb</groupId>
       <artifactId>mapdb</artifactId>
-      <version>0.9.7</version>
+      <version>${mapdb.version}</version>
       <type>jar</type>
     </dependency>
   </dependencies>
@@ -40,6 +42,30 @@
           <source>${base.java.version}</source>
           <target>${base.javac.version}</target>
         </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>copy mapdb</id>
+            <phase>process-classes</phase>
+            <goals>
+              <goal>copy</goal>
+            </goals>
+            <configuration>
+              <artifactItems>
+                <artifactItem>
+                  <groupId>org.mapdb</groupId>
+                  <artifactId>mapdb</artifactId>
+                  <version>${mapdb.version}</version>
+                  <type>jar</type>
+                  <overWrite>false</overWrite>
+                  <outputDirectory>${dbm.dir}</outputDirectory>
+                </artifactItem>
+              </artifactItems>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
     <pluginManagement>
