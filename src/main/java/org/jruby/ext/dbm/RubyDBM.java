@@ -183,6 +183,8 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod(name = {"[]=", "store"})
     public IRubyObject aset(ThreadContext context, IRubyObject key, IRubyObject value) {
         ensureDBOpen(context);
+        ensureNotFrozen(context);
+        
         map.put(str(context, key), str(context, value));
         db.commit();
         
@@ -310,6 +312,8 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject shift(ThreadContext context) {
         ensureDBOpen(context);
+        ensureNotFrozen(context);
+        
         Entry<String, String> pair = map.firstEntry();
         
         if (pair == null) return context.runtime.getNil();
@@ -323,6 +327,7 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject delete(ThreadContext context, IRubyObject key, Block block) {
         ensureDBOpen(context);
+        ensureNotFrozen(context);
         String value = map.remove(str(context, key));
         db.commit();
         
@@ -334,6 +339,8 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod(name = {"delete_if", "reject!"})
     public IRubyObject delete_if(ThreadContext context, Block block) {
         ensureDBOpen(context);
+        ensureNotFrozen(context);
+        
         for (String key : map.keySet()) {
             IRubyObject rkey = rstr(context, key);
             IRubyObject rvalue = rstr(context, map.get(key));
@@ -353,6 +360,8 @@ public class RubyDBM extends RubyObject {
     @JRubyMethod
     public IRubyObject clear(ThreadContext context) {
         ensureDBOpen(context);
+        ensureNotFrozen(context);
+        
         map.clear();
         db.commit();
         
@@ -446,6 +455,10 @@ public class RubyDBM extends RubyObject {
     private void ensureDBOpen(ThreadContext context) {
         if (map == null) throw new RaiseException(context.runtime, 
                 context.runtime.getClass("DBMError"), "closed DBM file", true);
+    }
+    
+    private void ensureNotFrozen(ThreadContext context) {
+        if (isFrozen()) throw context.runtime.newFrozenError("DBM");
     }
     
     
