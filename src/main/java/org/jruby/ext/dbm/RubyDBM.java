@@ -346,7 +346,7 @@ public class RubyDBM extends RubyObject {
         map.clear();
         db.commit();
         
-        return context.runtime.getNil();
+        return this;
     }
     
     @JRubyMethod
