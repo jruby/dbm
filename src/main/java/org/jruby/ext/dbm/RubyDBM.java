@@ -39,14 +39,9 @@ import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
-import org.jruby.exceptions.JumpException;
-import org.jruby.runtime.Arity;
 import org.jruby.runtime.Block;
 import org.jruby.runtime.BlockBody;
-import org.jruby.runtime.BlockCallback;
-import org.jruby.runtime.CallBlock19;
 import org.jruby.runtime.Helpers;
-import org.jruby.runtime.JavaInternalBlockBody;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
 import org.jruby.runtime.Visibility;
@@ -94,21 +89,21 @@ public class RubyDBM extends RubyObject {
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, Block block) {
         RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, block);
 
-        return block.isGiven() ? dbm.yield(block) : dbm;
+        return block.isGiven() ? block.yieldSpecific(context, dbm) : dbm;
     }
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, Block block) {
         RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, block);
 
-        return block.isGiven() ? dbm.yield(block) : dbm;        
+        return block.isGiven() ? block.yieldSpecific(context, dbm) : dbm;        
     }
     
     @JRubyMethod(meta = true)
     public static IRubyObject open(ThreadContext context, IRubyObject recv, IRubyObject filename, IRubyObject mode, IRubyObject flags, Block block) {
         RubyDBM dbm = (RubyDBM) ((RubyClass) recv).newInstance(context, filename, mode, flags, block);
 
-        return block.isGiven() ? dbm.yield(block) : dbm;
+        return block.isGiven() ? block.yieldSpecific(context, dbm) : dbm;
     }
     
     @JRubyMethod
@@ -415,8 +410,4 @@ public class RubyDBM extends RubyObject {
     private IRubyObject rstr(ThreadContext context, String value) {
         return context.runtime.newString(value);  
     }    
-
-    private IRubyObject yield(Block block) {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-    }
 }
