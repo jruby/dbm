@@ -158,17 +158,21 @@ public class RubyDBM extends RubyObject {
     }
     
     @JRubyMethod
-    public IRubyObject fetch(ThreadContext context, IRubyObject key) {
+    public IRubyObject fetch(ThreadContext context, IRubyObject key, Block block) {
         ensureDBOpen(context);
         String value = map.get(str(context, key));
         
-        if (value == null) throw context.runtime.newIndexError("key not found");
+        if (value == null) {
+            if (block.isGiven()) return block.yield(context, key);
+            
+            throw context.runtime.newIndexError("key not found");
+        }
 
         return context.runtime.newString(value);
     }
     
     @JRubyMethod
-    public IRubyObject fetch(ThreadContext context, IRubyObject key, IRubyObject ifNone) {
+    public IRubyObject fetch(ThreadContext context, IRubyObject key, IRubyObject ifNone, Block block) {
         ensureDBOpen(context);
         String value = map.get(str(context, key));
 
