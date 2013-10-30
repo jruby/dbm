@@ -330,7 +330,7 @@ public class RubyDBM extends RubyObject {
             IRubyObject rkey = rstr(context, key);
             IRubyObject rvalue = rstr(context, map.get(key));
             
-            if (block.yieldSpecific(context, rkey, rvalue).isNil()) map.remove(key);
+            if (block.yieldSpecific(context, rkey, rvalue).isTrue()) map.remove(key);
         }
         db.commit();
         
