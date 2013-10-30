@@ -39,12 +39,10 @@ import org.jruby.RubyNumeric;
 import org.jruby.RubyObject;
 import org.jruby.RubyString;
 import org.jruby.anno.JRubyMethod;
+import org.jruby.exceptions.RaiseException;
 import org.jruby.runtime.Block;
-import org.jruby.runtime.BlockBody;
-import org.jruby.runtime.Helpers;
 import org.jruby.runtime.ObjectAllocator;
 import org.jruby.runtime.ThreadContext;
-import org.jruby.runtime.Visibility;
 import org.jruby.runtime.builtin.IRubyObject;
 import org.jruby.util.io.ModeFlags;
 import org.mapdb.DB;
@@ -137,6 +135,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject close(ThreadContext context) {
+        ensureDBOpen(context);
         db.close();
         db = null;
         map = null;
@@ -151,6 +150,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = "[]")
     public IRubyObject aref(ThreadContext context, IRubyObject key) {
+        ensureDBOpen(context);
         String value = map.get(str(context, key));
         
         return value != null ? context.runtime.newString(value) : context.runtime.getNil();
@@ -158,6 +158,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject fetch(ThreadContext context, IRubyObject key) {
+        ensureDBOpen(context);
         String value = map.get(str(context, key));
         
         if (value == null) throw context.runtime.newIndexError("key not found");
@@ -167,6 +168,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject fetch(ThreadContext context, IRubyObject key, IRubyObject ifNone) {
+        ensureDBOpen(context);
         String value = map.get(str(context, key));
 
         return value != null ? context.runtime.newString(value) : ifNone;
@@ -174,6 +176,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"[]=", "store"})
     public IRubyObject aset(ThreadContext context, IRubyObject key, IRubyObject value) {
+        ensureDBOpen(context);
         map.put(str(context, key), str(context, value));
         
         return value;
@@ -188,6 +191,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject key(ThreadContext context, IRubyObject value) {
+        ensureDBOpen(context);
         String valueString = str(context, value);
         
         for (String key : map.keySet()) {
@@ -199,6 +203,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject select(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         RubyArray array = context.runtime.newArray();
         
         for (String key : map.keySet()) {
@@ -213,6 +218,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject values_at(ThreadContext context, IRubyObject[] keys) {
+        ensureDBOpen(context);
         RubyArray array = context.runtime.newArray();
         
         for (int i = 0; i < keys.length; i++) {
@@ -224,16 +230,19 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"length", "size"})
     public IRubyObject length(ThreadContext context) {
+        ensureDBOpen(context);
         return context.runtime.newFixnum(map.size());
     }
     
     @JRubyMethod(name = "empty?")
     public IRubyObject empty_p(ThreadContext context) {
+        ensureDBOpen(context);
         return context.runtime.newBoolean(map.isEmpty());
     }
 
     @JRubyMethod(name = {"each", "each_pair"})
     public IRubyObject each(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         if (!block.isGiven()) return RubyEnumerator.enumeratorize(context.runtime, this, "each");
         
         for (String key: map.keySet()) {
@@ -245,6 +254,7 @@ public class RubyDBM extends RubyObject {
 
     @JRubyMethod
     public IRubyObject each_value(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         if (!block.isGiven()) return RubyEnumerator.enumeratorize(context.runtime, this, "each_value");
         
         for (String key: map.keySet()) {
@@ -256,6 +266,7 @@ public class RubyDBM extends RubyObject {
 
     @JRubyMethod
     public IRubyObject each_key(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         if (!block.isGiven()) return RubyEnumerator.enumeratorize(context.runtime, this, "each_key");
         
         for (String key: map.keySet()) {
@@ -267,6 +278,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject keys(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         RubyArray array = context.runtime.newArray();
         
         for (String key : map.keySet()) {
@@ -278,6 +290,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject values(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         RubyArray array = context.runtime.newArray();
         
         for (String key : map.keySet()) {
@@ -289,6 +302,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject shift(ThreadContext context) {
+        ensureDBOpen(context);
         for (String key : map.keySet()) {
             return context.runtime.newArray(rstr(context, key), rstr(context, map.get(key)));
         }
@@ -298,6 +312,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject delete(ThreadContext context, IRubyObject key, Block block) {
+        ensureDBOpen(context);
         String value = map.remove(str(context, key));
         
         if (value == null) return block.isGiven() ? block.yieldSpecific(context, key) : context.runtime.getNil();
@@ -307,6 +322,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"delete_if", "reject!"})
     public IRubyObject delete_if(ThreadContext context, Block block) {
+        ensureDBOpen(context);
         for (String key : map.keySet()) {
             IRubyObject rkey = rstr(context, key);
             IRubyObject rvalue = rstr(context, map.get(key));
@@ -324,6 +340,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject clear(ThreadContext context) {
+        ensureDBOpen(context);
         map.clear();
         
         return context.runtime.getNil();
@@ -331,6 +348,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject invert(ThreadContext context) {
+        ensureDBOpen(context);
         RubyHash hash = RubyHash.newHash(context.runtime);
         
         for (String key : map.keySet()) {
@@ -342,6 +360,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject update(final ThreadContext context, IRubyObject value) {
+        ensureDBOpen(context);
         while (true) {
             IRubyObject pair = value.callMethod(context, "each_pair");
             
@@ -361,6 +380,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject replace(ThreadContext context, IRubyObject value) {
+        ensureDBOpen(context);
         clear(context);
         update(context, value);
         
@@ -369,11 +389,13 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod(name = {"has_key?", "key?", "include?", "member?"})
     public IRubyObject has_key(ThreadContext context, IRubyObject value) {
+        ensureDBOpen(context);
         return context.runtime.newBoolean(map.get(str(context, value)) != null);
     }
 
     @JRubyMethod(name = {"value?", "has_value?"})
     public IRubyObject has_value(ThreadContext context, IRubyObject testArg) {
+        ensureDBOpen(context);
         String test = str(context, testArg);
         
         for (String value: map.values()) {
@@ -385,6 +407,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject to_a(ThreadContext context) {
+        ensureDBOpen(context);
         RubyArray array = context.runtime.newArray();
         
         for (String key: map.keySet()) {
@@ -396,6 +419,7 @@ public class RubyDBM extends RubyObject {
     
     @JRubyMethod
     public IRubyObject to_hash(ThreadContext context) {
+        ensureDBOpen(context);
         RubyHash hash = RubyHash.newHash(context.runtime);
         
         for (String key: map.keySet()) {
@@ -405,10 +429,11 @@ public class RubyDBM extends RubyObject {
         return hash;
     }
     
-    private IRubyObject each(ThreadContext context, IRubyObject self, BlockBody body) {
-        Block block = new Block(body, context.currentBinding(self, Visibility.PUBLIC));
-        return Helpers.invoke(context, self, "each", block);
+    private void ensureDBOpen(ThreadContext context) {
+        if (map == null) throw new RaiseException(context.runtime, 
+                context.runtime.getClass("DBMError"), "closed DBM file", true);
     }
+    
     
     private String str(ThreadContext context, IRubyObject value) {
         return RubyString.objAsString(context, value).asJavaString();  
