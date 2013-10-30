@@ -64,7 +64,6 @@ public class RubyDBM extends RubyObject {
     
     private DB db = null;
     private ConcurrentNavigableMap<String, String> map = null;
-    private boolean readOnly = false;
     
     public static void initDBM(Ruby runtime) {
         RubyClass dbm = runtime.defineClass("DBM", runtime.getObject(), new ObjectAllocator() {
@@ -90,6 +89,16 @@ public class RubyDBM extends RubyObject {
     
     public RubyDBM(Ruby runtime, RubyClass klazz) {
         super(runtime, klazz);
+    }
+    
+    // The need for 'nil' mode to return nil from new/open on error requires defining an explicit new method
+    @JRubyMethod(meta = true, name = "new", required = 1, optional = 2)
+    public static IRubyObject _new(ThreadContext context, IRubyObject recv, IRubyObject[] args) {
+        switch (args.length) {
+            case 1: return open(context, recv, args[0], Block.NULL_BLOCK);
+            case 2: return open(context, recv, args[0], args[1], Block.NULL_BLOCK);
+        }
+        return open(context, recv, args[0], args[1], args[2], Block.NULL_BLOCK); // 3 args
     }
     
     @JRubyMethod(meta = true)
@@ -141,7 +150,7 @@ public class RubyDBM extends RubyObject {
         String file = RubyFile.get_path(context, filename).asJavaString();
         File dbFile = new File(file);
         
-        if (mode == NIL_INSTEAD_OF_ERROR && openFlags == 0) throw NIL_HACK_EXCEPTION;
+        if (mode == NIL_INSTEAD_OF_ERROR && openFlags == 0 && !dbFile.exists()) throw NIL_HACK_EXCEPTION;
         
         if (openFlags == 0) openFlags = WRCREAT;
         
@@ -153,11 +162,9 @@ public class RubyDBM extends RubyObject {
         }
         
         DBMaker maker = DBMaker.newFileDB(dbFile).closeOnJvmShutdown();
-        
-        if (openFlags == READER) {
-            maker = maker.readOnly();
-            readOnly = true; // bummer I cannot ask db whether it is opened read-only?
-        }
+
+        // If explicitly request as read-only or file mode is not writable open in read-only mode.
+        if (openFlags == READER || (dbFile.exists() && !dbFile.canWrite())) maker = maker.readOnly();
         
         db = maker.make();
         map = db.getTreeMap("");
@@ -349,7 +356,7 @@ public class RubyDBM extends RubyObject {
         
         if (pair == null) return context.runtime.getNil();
         
-        map.remove(pair.getKey());
+        remove(context, pair.getKey());
         db.commit();
 
         return context.runtime.newArray(rstr(context, pair.getKey()), rstr(context, pair.getValue()));
@@ -359,10 +366,13 @@ public class RubyDBM extends RubyObject {
     public IRubyObject delete(ThreadContext context, IRubyObject key, Block block) {
         ensureDBOpen(context);
         ensureNotFrozen(context);
-        String value = map.remove(str(context, key));
-        db.commit();
+        
+        String value = map.get(str(context, key));
         
         if (value == null) return block.isGiven() ? block.yieldSpecific(context, key) : context.runtime.getNil();
+        
+        remove(context, str(context, key));
+        db.commit();
 
         return rstr(context, value);
     }
@@ -376,7 +386,7 @@ public class RubyDBM extends RubyObject {
             IRubyObject rkey = rstr(context, key);
             IRubyObject rvalue = rstr(context, map.get(key));
             
-            if (block.yieldSpecific(context, rkey, rvalue).isTrue()) map.remove(key);
+            if (block.yieldSpecific(context, rkey, rvalue).isTrue()) remove(context, key);
         }
         db.commit();
         
@@ -483,6 +493,16 @@ public class RubyDBM extends RubyObject {
         return hash;
     }
     
+    private String remove(ThreadContext context, String key) {
+        try {
+            return map.remove(key);
+        } catch (UnsupportedOperationException e) {
+            dbError(context, "dbm_store failed");
+        }
+        
+        return null; // Not reached
+    }
+    
     private void store(ThreadContext context, IRubyObject key, IRubyObject value) {
         try {
             map.put(str(context, key), str(context, value));
@@ -490,7 +510,6 @@ public class RubyDBM extends RubyObject {
             dbError(context, "dbm_store failed");
         }        
     }
-    
     
     private void ensureDBOpen(ThreadContext context) {
         if (map == null) dbError(context, "closed DBM file");
@@ -513,7 +532,7 @@ public class RubyDBM extends RubyObject {
     }
     
     private boolean isReadOnly() {
-        return readOnly;
+        return db.getEngine().isReadOnly();
     }
     
 }
