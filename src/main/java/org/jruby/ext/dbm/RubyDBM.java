@@ -428,35 +428,35 @@ public class RubyDBM extends RubyObject {
         return hash;
     }
     
-    @JRubyMethod
-    public IRubyObject update(final ThreadContext context, IRubyObject value) {
-        ensureDBOpen(context);
-        while (true) {
-            IRubyObject pair = value.callMethod(context, "each_pair");
-            
-            if (pair.isNil()) break;
-            
-            pair.checkArrayType();
-            
-            RubyArray cons = (RubyArray) pair;
-            
-            if (cons.size() < 2) throw context.runtime.newArgumentError("pair must be [key, value]");
-            
-            store(context, cons.eltOk(0), cons.eltOk(1));
-        }
-        db.commit();
-
-        return this;
-    }
-    
-    @JRubyMethod
-    public IRubyObject replace(ThreadContext context, IRubyObject value) {
-        ensureDBOpen(context);
-        clear(context);
-        update(context, value);
-        
-        return this;
-    }
+//    @JRubyMethod
+//    public IRubyObject update(final ThreadContext context, IRubyObject value) {
+//        ensureDBOpen(context);
+//        while (true) {
+//            IRubyObject pair = value.callMethod(context, "each_pair");
+//            
+//            if (pair.isNil()) break;
+//            
+//            pair.checkArrayType();
+//            
+//            RubyArray cons = (RubyArray) pair;
+//            
+//            if (cons.size() < 2) throw context.runtime.newArgumentError("pair must be [key, value]");
+//            
+//            store(context, cons.eltOk(0), cons.eltOk(1));
+//        }
+//        db.commit();
+//
+//        return this;
+//    }
+//    
+//    @JRubyMethod
+//    public IRubyObject replace(ThreadContext context, IRubyObject value) {
+//        ensureDBOpen(context);
+//        clear(context);
+//        update(context, value);
+//        
+//        return this;
+//    }
     
     @JRubyMethod(name = {"has_key?", "key?", "include?", "member?"})
     public IRubyObject has_key(ThreadContext context, IRubyObject value) {
